@@ -19,7 +19,7 @@ from aiogram.enums import ChatMemberStatus
 from dotenv import load_dotenv
 
 load_dotenv()
-BOT_TOKEN = '9095358392:AAHajCxEMNDdx9AOq_611pZof3ky4VW9B1Q'
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 dp = Dispatcher()
 
