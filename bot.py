@@ -269,7 +269,56 @@ async def process_successful_payment(message: Message, bot: Bot):
     channel_id = int(payload.split("_")[1])
     set_premium(channel_id)
     await message.answer("💎 **Оплата прошла успешно!** Ваш канал теперь безлимитный.", parse_mode="Markdown")
+# ==========================================
+# АДМИН-ПАНЕЛЬ
+# ==========================================
+ADMIN_ID = 1463676397 
 
+def get_admin_stats():
+    """Собирает статистику из базы для админа"""
+    with sqlite3.connect(DB_PATH) as con:
+        users_count = con.execute("SELECT COUNT(*) FROM owners").fetchone()[0]
+        channels_count = con.execute("SELECT COUNT(*) FROM channels WHERE is_active = 1").fetchone()[0]
+        premium_count = con.execute("SELECT COUNT(*) FROM channels WHERE is_premium = 1").fetchone()[0]
+    return users_count, channels_count, premium_count
+
+@dp.message(Command("admin"))
+async def admin_panel(message: Message):
+    # Проверка: если пишет не админ — игнорируем
+    if message.from_user.id != ADMIN_ID:
+        return
+    
+    users, channels, premiums = get_admin_stats()
+    
+    text = (
+        "👑 **Админ-панель**\n\n"
+        f"👥 Всего пользователей: **{users}**\n"
+        f"📢 Активных каналов: **{channels}**\n"
+        f"💎 Куплено Премиумов: **{premiums}**\n\n"
+        "Здесь будет появляться другая информация."
+    )
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Обновить статистику", callback_data="admin_refresh")]
+    ])
+    await message.answer(text, reply_markup=kb, parse_mode="Markdown")
+
+@dp.callback_query(F.data == "admin_refresh")
+async def admin_refresh(callback: CallbackQuery):
+    if callback.from_user.id != ADMIN_ID:
+        return await callback.answer("У вас нет доступа.", show_alert=True)
+        
+    users, channels, premiums = get_admin_stats()
+    text = (
+        "👑 **Админ-панель**\n\n"
+        f"👥 Всего пользователей: **{users}**\n"
+        f"📢 Активных каналов: **{channels}**\n"
+        f"💎 Куплено Премиумов: **{premiums}**\n\n"
+        f"🕒 Обновлено: {datetime.now().strftime('%H:%M:%S')}"
+    )
+    await callback.message.edit_text(text, reply_markup=callback.message.reply_markup, parse_mode="Markdown")
+    await callback.answer("Данные обновлены!")
+# ==========================================
 async def main():
     init_db()
     bot = Bot(token=BOT_TOKEN)
